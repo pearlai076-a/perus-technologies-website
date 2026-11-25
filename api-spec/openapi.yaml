@@ -1,0 +1,1135 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: PERUS TECHNOLOGIES public content, enquiries, and protected administration API.
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: public
+    description: Public company website content
+  - name: enquiries
+    description: Public enquiries and administrator review
+  - name: admin
+    description: Administrator-only content management
+  - name: storage
+    description: Administrator-only object uploads
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /products:
+    get:
+      operationId: listPublicProducts
+      tags: [public]
+      summary: List published products
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Published products for the public catalogue
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+  /products/{slug}:
+    get:
+      operationId: getPublicProduct
+      tags: [public]
+      summary: Get a published product
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /categories:
+    get:
+      operationId: listPublicCategories
+      tags: [public]
+      summary: List published product categories
+      responses:
+        "200":
+          description: Categories visible in the public catalogue
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProductCategory" }
+  /offers:
+    get:
+      operationId: listPublicOffers
+      tags: [public]
+      summary: List current promotions
+      responses:
+        "200":
+          description: Active published promotions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Promotion" }
+  /downloads:
+    get:
+      operationId: listPublicDownloads
+      tags: [public]
+      summary: List available downloads
+      responses:
+        "200":
+          description: Published downloads with a real file or external link
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Download" }
+  /downloads/{id}/download:
+    get:
+      operationId: downloadPublicFile
+      tags: [public]
+      summary: Record and redirect to a published download
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "302":
+          description: Redirects to the configured file
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+        "404":
+          description: Download is unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /announcements:
+    get:
+      operationId: listPublicAnnouncements
+      tags: [public]
+      summary: List published announcements
+      responses:
+        "200":
+          description: Published company announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Announcement" }
+  /pages/{slug}:
+    get:
+      operationId: getPublicPage
+      tags: [public]
+      summary: Get a published editable page
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Page content and metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PageContent" }
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /site-settings:
+    get:
+      operationId: getPublicSiteSettings
+      tags: [public]
+      summary: Get public company and SEO settings
+      responses:
+        "200":
+          description: Public website settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteSettings" }
+  /enquiries:
+    post:
+      operationId: createPublicEnquiry
+      tags: [enquiries]
+      summary: Submit a company enquiry
+      description: Validates and stores the enquiry; any email alert is optional and separately configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnquiryInput" }
+      responses:
+        "201":
+          description: Enquiry stored successfully
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EnquiryReceipt" }
+        "400":
+          description: Invalid enquiry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "429":
+          description: Too many enquiries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [admin]
+      summary: Get dashboard totals and recent activity
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminOverview" }
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "403":
+          description: Administrator access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/products:
+    get:
+      operationId: listAdminProducts
+      tags: [admin]
+      summary: List all products for management
+      responses:
+        "200":
+          description: Products including unpublished records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+    post:
+      operationId: createAdminProduct
+      tags: [admin]
+      summary: Create a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductInput" }
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "400":
+          description: Invalid product
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/products/{id}:
+    patch:
+      operationId: updateAdminProduct
+      tags: [admin]
+      summary: Update a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductUpdate" }
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    delete:
+      operationId: deleteAdminProduct
+      tags: [admin]
+      summary: Delete a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Product deleted
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/categories:
+    get:
+      operationId: listAdminCategories
+      tags: [admin]
+      summary: List product categories
+      responses:
+        "200":
+          description: All product categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProductCategory" }
+    post:
+      operationId: createAdminCategory
+      tags: [admin]
+      summary: Create a product category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryInput" }
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductCategory" }
+  /admin/categories/{id}:
+    patch:
+      operationId: updateAdminCategory
+      tags: [admin]
+      summary: Update a product category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryUpdate" }
+      responses:
+        "200":
+          description: Category updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductCategory" }
+    delete:
+      operationId: deleteAdminCategory
+      tags: [admin]
+      summary: Delete a product category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Category deleted
+        "409":
+          description: Category is still in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/promotions:
+    get:
+      operationId: listAdminPromotions
+      tags: [admin]
+      summary: List all promotions
+      responses:
+        "200":
+          description: All promotions including inactive campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Promotion" }
+    post:
+      operationId: createAdminPromotion
+      tags: [admin]
+      summary: Create a promotion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromotionInput" }
+      responses:
+        "201":
+          description: Promotion created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Promotion" }
+  /admin/promotions/{id}:
+    patch:
+      operationId: updateAdminPromotion
+      tags: [admin]
+      summary: Update a promotion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PromotionUpdate" }
+      responses:
+        "200":
+          description: Promotion updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Promotion" }
+    delete:
+      operationId: deleteAdminPromotion
+      tags: [admin]
+      summary: Delete a promotion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Promotion deleted
+  /admin/downloads:
+    get:
+      operationId: listAdminDownloads
+      tags: [admin]
+      summary: List all managed downloads
+      responses:
+        "200":
+          description: All download records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Download" }
+    post:
+      operationId: createAdminDownload
+      tags: [admin]
+      summary: Create a download record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DownloadInput" }
+      responses:
+        "201":
+          description: Download created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Download" }
+        "400":
+          description: A valid file or HTTPS link is required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /admin/downloads/{id}:
+    patch:
+      operationId: updateAdminDownload
+      tags: [admin]
+      summary: Update a download
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DownloadUpdate" }
+      responses:
+        "200":
+          description: Download updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Download" }
+    delete:
+      operationId: deleteAdminDownload
+      tags: [admin]
+      summary: Delete a download record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Download deleted
+  /admin/announcements:
+    get:
+      operationId: listAdminAnnouncements
+      tags: [admin]
+      summary: List all announcements
+      responses:
+        "200":
+          description: All announcement records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Announcement" }
+    post:
+      operationId: createAdminAnnouncement
+      tags: [admin]
+      summary: Create an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnnouncementInput" }
+      responses:
+        "201":
+          description: Announcement created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+  /admin/announcements/{id}:
+    patch:
+      operationId: updateAdminAnnouncement
+      tags: [admin]
+      summary: Update an announcement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnnouncementUpdate" }
+      responses:
+        "200":
+          description: Announcement updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+    delete:
+      operationId: deleteAdminAnnouncement
+      tags: [admin]
+      summary: Delete an announcement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Announcement deleted
+  /admin/content:
+    get:
+      operationId: listAdminPages
+      tags: [admin]
+      summary: List editable pages and sections
+      responses:
+        "200":
+          description: Page content for administration
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PageContent" }
+  /admin/content/{slug}:
+    put:
+      operationId: updateAdminPage
+      tags: [admin]
+      summary: Create or update a page's content
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PageContentInput" }
+      responses:
+        "200":
+          description: Page content saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PageContent" }
+  /admin/enquiries:
+    get:
+      operationId: listAdminEnquiries
+      tags: [admin, enquiries]
+      summary: List and filter enquiries
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/EnquiryStatus" }
+        - name: type
+          in: query
+          schema: { $ref: "#/components/schemas/EnquiryType" }
+      responses:
+        "200":
+          description: Enquiries for the dashboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Enquiry" }
+  /admin/enquiries/{id}:
+    get:
+      operationId: getAdminEnquiry
+      tags: [admin, enquiries]
+      summary: Get an enquiry's details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Enquiry details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enquiry" }
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    patch:
+      operationId: updateAdminEnquiry
+      tags: [admin, enquiries]
+      summary: Update enquiry status or internal note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EnquiryUpdate" }
+      responses:
+        "200":
+          description: Enquiry updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enquiry" }
+  /admin/site-settings:
+    get:
+      operationId: getAdminSiteSettings
+      tags: [admin]
+      summary: Get editable website settings
+      responses:
+        "200":
+          description: Editable public site settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteSettings" }
+    patch:
+      operationId: updateAdminSiteSettings
+      tags: [admin]
+      summary: Update website settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SiteSettingsUpdate" }
+      responses:
+        "200":
+          description: Settings saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteSettings" }
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned App Storage upload URL
+      description: Admin-only request. The client then uploads bytes directly to storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadUrlInput" }
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadUrlResponse" }
+        "400":
+          description: Invalid or unsupported upload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [storage]
+      summary: Serve an uploaded object
+      description: Serves only objects marked for public website content or an authenticated admin.
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema: { type: string, format: binary }
+        "404":
+          description: Object not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    ErrorEnvelope:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+    ProductStatus:
+      type: string
+      enum: [in-development, coming-soon, available, discontinued]
+    EnquiryStatus:
+      type: string
+      enum: [pending, reviewed, resolved]
+    EnquiryType:
+      type: string
+      enum: [general, partnership, product, support, collaboration, investor, other]
+    ProductMedia:
+      type: object
+      properties:
+        url: { type: string, minLength: 1 }
+        alt: { type: string }
+        kind: { type: string, enum: [logo, image, screenshot, video] }
+      required: [url, alt, kind]
+    ProductCategory:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name, slug, description, published, sortOrder, createdAt, updatedAt]
+    CategoryInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, minLength: 1, maxLength: 140 }
+        description: { type: string }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+      required: [name, slug]
+    CategoryUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, minLength: 1, maxLength: 140 }
+        description: { type: string }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        categoryId: { type: [integer, "null"] }
+        categoryName: { type: [string, "null"] }
+        summary: { type: string }
+        description: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        benefits:
+          type: array
+          items: { type: string }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/ProductMedia" }
+        status: { $ref: "#/components/schemas/ProductStatus" }
+        price: { type: [number, "null"] }
+        currency: { type: string }
+        websiteUrl: { type: [string, "null"], format: uri }
+        downloadUrl: { type: [string, "null"], format: uri }
+        ctaLabel: { type: string }
+        featured: { type: boolean }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, slug, name, categoryId, categoryName, summary, description, features, benefits, media, status, price, currency, websiteUrl, downloadUrl, ctaLabel, featured, published, sortOrder, createdAt, updatedAt]
+    ProductInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        categoryId: { type: [integer, "null"] }
+        summary: { type: string, maxLength: 300 }
+        description: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        benefits:
+          type: array
+          items: { type: string }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/ProductMedia" }
+        status: { $ref: "#/components/schemas/ProductStatus" }
+        price: { type: [number, "null"], minimum: 0 }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        websiteUrl: { type: [string, "null"], format: uri }
+        downloadUrl: { type: [string, "null"], format: uri }
+        ctaLabel: { type: string, maxLength: 80 }
+        featured: { type: boolean }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+      required: [slug, name, summary, description, status]
+    ProductUpdate:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        categoryId: { type: [integer, "null"] }
+        summary: { type: string, maxLength: 300 }
+        description: { type: string }
+        features: { type: array, items: { type: string } }
+        benefits: { type: array, items: { type: string } }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/ProductMedia" }
+        status: { $ref: "#/components/schemas/ProductStatus" }
+        price: { type: [number, "null"], minimum: 0 }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        websiteUrl: { type: [string, "null"], format: uri }
+        downloadUrl: { type: [string, "null"], format: uri }
+        ctaLabel: { type: string, maxLength: 80 }
+        featured: { type: boolean }
+        published: { type: boolean }
+        sortOrder: { type: integer }
+    Promotion:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        discountPercent: { type: [number, "null"], minimum: 0, maximum: 100 }
+        couponCode: { type: [string, "null"] }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        featured: { type: boolean }
+        active: { type: boolean }
+        published: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, slug, title, description, productId, discountPercent, couponCode, startsAt, expiresAt, featured, active, published, createdAt, updatedAt]
+    PromotionInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        discountPercent: { type: [number, "null"], minimum: 0, maximum: 100 }
+        couponCode: { type: [string, "null"], maxLength: 80 }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        featured: { type: boolean }
+        active: { type: boolean }
+        published: { type: boolean }
+      required: [slug, title, description, startsAt, expiresAt]
+    PromotionUpdate:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        discountPercent: { type: [number, "null"], minimum: 0, maximum: 100 }
+        couponCode: { type: [string, "null"], maxLength: 80 }
+        startsAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        featured: { type: boolean }
+        active: { type: boolean }
+        published: { type: boolean }
+    DownloadPlatform:
+      type: string
+      enum: [desktop, android, ios, document, resource, other]
+    Download:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        productName: { type: [string, "null"] }
+        platform: { $ref: "#/components/schemas/DownloadPlatform" }
+        version: { type: string }
+        releaseDate: { type: [string, "null"], format: date }
+        fileSizeBytes: { type: [integer, "null"] }
+        supportedOperatingSystems: { type: array, items: { type: string } }
+        objectPath: { type: [string, "null"] }
+        externalUrl: { type: [string, "null"], format: uri }
+        published: { type: boolean }
+        downloadCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, slug, title, description, productId, productName, platform, version, releaseDate, fileSizeBytes, supportedOperatingSystems, objectPath, externalUrl, published, downloadCount, createdAt, updatedAt]
+    DownloadInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        platform: { $ref: "#/components/schemas/DownloadPlatform" }
+        version: { type: string, maxLength: 80 }
+        releaseDate: { type: [string, "null"], format: date }
+        fileSizeBytes: { type: [integer, "null"], minimum: 0 }
+        supportedOperatingSystems: { type: array, items: { type: string } }
+        objectPath: { type: [string, "null"] }
+        externalUrl: { type: [string, "null"], format: uri }
+        published: { type: boolean }
+      required: [slug, title, description, platform, version]
+    DownloadUpdate:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string }
+        productId: { type: [integer, "null"] }
+        platform: { $ref: "#/components/schemas/DownloadPlatform" }
+        version: { type: string, maxLength: 80 }
+        releaseDate: { type: [string, "null"], format: date }
+        fileSizeBytes: { type: [integer, "null"], minimum: 0 }
+        supportedOperatingSystems: { type: array, items: { type: string } }
+        objectPath: { type: [string, "null"] }
+        externalUrl: { type: [string, "null"], format: uri }
+        published: { type: boolean }
+    Announcement:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        body: { type: string }
+        featured: { type: boolean }
+        published: { type: boolean }
+        publishedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, slug, title, summary, body, featured, published, publishedAt, createdAt, updatedAt]
+    AnnouncementInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        summary: { type: string, maxLength: 500 }
+        body: { type: string }
+        featured: { type: boolean }
+        published: { type: boolean }
+        publishedAt: { type: [string, "null"], format: date-time }
+      required: [slug, title, summary, body]
+    AnnouncementUpdate:
+      type: object
+      properties:
+        slug: { type: string, minLength: 1, maxLength: 160 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        summary: { type: string, maxLength: 500 }
+        body: { type: string }
+        featured: { type: boolean }
+        published: { type: boolean }
+        publishedAt: { type: [string, "null"], format: date-time }
+    ContentSection:
+      type: object
+      properties:
+        key: { type: string }
+        heading: { type: string }
+        body: { type: string }
+        imageUrl: { type: [string, "null"] }
+        enabled: { type: boolean }
+        sortOrder: { type: integer }
+      required: [key, heading, body, imageUrl, enabled, sortOrder]
+    PageContent:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        metaTitle: { type: string }
+        metaDescription: { type: string }
+        published: { type: boolean }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/ContentSection" }
+        updatedAt: { type: string, format: date-time }
+      required: [slug, title, metaTitle, metaDescription, published, sections, updatedAt]
+    PageContentInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        metaTitle: { type: string, maxLength: 180 }
+        metaDescription: { type: string, maxLength: 320 }
+        published: { type: boolean }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/ContentSection" }
+      required: [title, sections]
+    SiteSettings:
+      type: object
+      properties:
+        companyName: { type: string }
+        domain: { type: string }
+        aiDomain: { type: string }
+        contactEmail: { type: [string, "null"], format: email }
+        contactPhone: { type: [string, "null"] }
+        logoUrl: { type: [string, "null"] }
+        faviconUrl: { type: [string, "null"] }
+        socialLinks: { type: object, additionalProperties: { type: string } }
+        seoTitle: { type: string }
+        seoDescription: { type: string }
+        footerText: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [companyName, domain, aiDomain, contactEmail, contactPhone, logoUrl, faviconUrl, socialLinks, seoTitle, seoDescription, footerText, updatedAt]
+    SiteSettingsUpdate:
+      type: object
+      properties:
+        companyName: { type: string, minLength: 1, maxLength: 160 }
+        domain: { type: string, maxLength: 180 }
+        aiDomain: { type: string, maxLength: 180 }
+        contactEmail: { type: [string, "null"], format: email }
+        contactPhone: { type: [string, "null"], maxLength: 80 }
+        logoUrl: { type: [string, "null"], maxLength: 500 }
+        faviconUrl: { type: [string, "null"], maxLength: 500 }
+        socialLinks: { type: object, additionalProperties: { type: string } }
+        seoTitle: { type: string, maxLength: 180 }
+        seoDescription: { type: string, maxLength: 320 }
+        footerText: { type: string, maxLength: 500 }
+    EnquiryInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 254 }
+        type: { $ref: "#/components/schemas/EnquiryType" }
+        subject: { type: string, maxLength: 180 }
+        message: { type: string, minLength: 1, maxLength: 10000 }
+      required: [name, email, type, message]
+    EnquiryReceipt:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { $ref: "#/components/schemas/EnquiryStatus" }
+        notification: { type: string, enum: [sent, not-configured, failed] }
+        submittedAt: { type: string, format: date-time }
+      required: [id, status, notification, submittedAt]
+    Enquiry:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string, format: email }
+        type: { $ref: "#/components/schemas/EnquiryType" }
+        subject: { type: [string, "null"] }
+        message: { type: string }
+        status: { $ref: "#/components/schemas/EnquiryStatus" }
+        internalNote: { type: [string, "null"] }
+        notificationStatus: { type: string, enum: [sent, not-configured, failed] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name, email, type, subject, message, status, internalNote, notificationStatus, createdAt, updatedAt]
+    EnquiryUpdate:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/EnquiryStatus" }
+        internalNote: { type: [string, "null"], maxLength: 5000 }
+    ActivityEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        action: { type: string }
+        entityType: { type: string }
+        summary: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, action, entityType, summary, createdAt]
+    AdminOverview:
+      type: object
+      properties:
+        totalProducts: { type: integer }
+        publishedProducts: { type: integer }
+        draftProducts: { type: integer }
+        activePromotions: { type: integer }
+        totalEnquiries: { type: integer }
+        pendingEnquiries: { type: integer }
+        totalDownloads: { type: integer }
+        recentActivity:
+          type: array
+          items: { $ref: "#/components/schemas/ActivityEntry" }
+      required: [totalProducts, publishedProducts, draftProducts, activePromotions, totalEnquiries, pendingEnquiries, totalDownloads, recentActivity]
+    UploadUrlInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 52428800 }
+        contentType: { type: string, minLength: 1, maxLength: 120 }
+      required: [name, size, contentType]
+    UploadUrlResponse:
+      type: object
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+      required: [uploadURL, objectPath]
+
